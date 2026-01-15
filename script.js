@@ -1,12 +1,8 @@
-const API_ENDPOINTS = [
-    'https://www.tikwm.com/api/',
-    'https://api.tiklydown.eu.org/api/download',
-    'https://tikcdn.io/api/v1/video'
-];
+const API_ENDPOINT = 'https://www.tikwm.com/api/';
 
 let currentVideoData = null;
-let abortController = null; // 用于取消请求
-let debounceTimer = null; // 防抖计时器
+let abortController = null;
+let debounceTimer = null;
 
 const elements = {
     videoUrl: document.getElementById('videoUrl'),
@@ -35,68 +31,71 @@ const elements = {
 
 // Event Listeners
 elements.downloadBtn.addEventListener('click', handleDownload);
+elements.videoUrl.addEventListener('keypress', handleKeyPress);
+elements.videoUrl.addEventListener('input', handleInputChange);
+elements.videoUrl.addEventListener('paste', handlePaste);
+elements.downloadVideo?.addEventListener('click', handleVideoDownload);
+elements.previewBtn?.addEventListener('click', handlePreviewClick);
+elements.copyVideoLink?.addEventListener('click', handleCopyClick);
+elements.modalClose?.addEventListener('click', closePreview);
+elements.previewModal?.addEventListener('click', handleModalClick);
+document.addEventListener('keydown', handleEscapeKey);
 
-elements.videoUrl.addEventListener('keypress', (e) => {
+function handleKeyPress(e) {
     if (e.key === 'Enter') {
         handleDownload();
     }
-});
+}
 
-// 清除错误状态
-elements.videoUrl.addEventListener('input', () => {
+function handleInputChange() {
     if (elements.videoUrl.classList.contains('error')) {
         hideError();
     }
-});
+}
 
-elements.downloadVideo?.addEventListener('click', (e) => {
+function handleVideoDownload(e) {
     if (currentVideoData?.videoUrl) {
         e.preventDefault();
         downloadMedia(currentVideoData.videoUrl, `tiktok_${Date.now()}.mp4`);
     }
-});
+}
 
-// 粘贴自动解析
-elements.videoUrl.addEventListener('paste', (e) => {
-    // 清除之前的防抖计时器
+function handlePaste(e) {
     if (debounceTimer) {
         clearTimeout(debounceTimer);
     }
 
-    // 500ms 后自动触发解析
-    debounceTimer = setTimeout(() => {
+    debounceTimer = setTimeout(function() {
         const pastedText = e.clipboardData.getData('text');
         if (pastedText && isValidTikTokUrl(pastedText.trim())) {
             handleDownload();
         }
     }, 500);
-});
+}
 
-elements.previewBtn?.addEventListener('click', () => {
+function handlePreviewClick() {
     if (currentVideoData?.videoUrl) {
         openPreview(currentVideoData.videoUrl);
     }
-});
+}
 
-elements.copyVideoLink?.addEventListener('click', () => {
+function handleCopyClick() {
     if (currentVideoData?.videoUrl) {
         copyToClipboard(currentVideoData.videoUrl, elements.copyVideoLink);
     }
-});
+}
 
-elements.modalClose?.addEventListener('click', closePreview);
-
-elements.previewModal?.addEventListener('click', (e) => {
+function handleModalClick(e) {
     if (e.target === elements.previewModal || e.target.classList.contains('modal-backdrop')) {
         closePreview();
     }
-});
+}
 
-document.addEventListener('keydown', (e) => {
+function handleEscapeKey(e) {
     if (e.key === 'Escape' && elements.previewModal?.classList.contains('active')) {
         closePreview();
     }
-});
+}
 
 // Main Functions
 async function handleDownload() {
@@ -112,12 +111,10 @@ async function handleDownload() {
         return;
     }
 
-    // 取消之前的请求
     if (abortController) {
         abortController.abort();
     }
 
-    // 创建新的 AbortController
     abortController = new AbortController();
 
     hideError();
@@ -128,7 +125,6 @@ async function handleDownload() {
         const videoData = await fetchTikTokData(url);
         displayResult(videoData);
     } catch (error) {
-        // 如果是用户取消的请求，不显示错误
         if (error.name === 'AbortError') {
             return;
         }
@@ -141,7 +137,7 @@ async function handleDownload() {
 }
 
 async function fetchTikTokData(url) {
-    const apiUrl = `${API_ENDPOINTS[0]}?url=${encodeURIComponent(url)}&hd=1`;
+    const apiUrl = `${API_ENDPOINT}?url=${encodeURIComponent(url)}&hd=1`;
 
     try {
         const response = await fetch(apiUrl, {
@@ -149,7 +145,7 @@ async function fetchTikTokData(url) {
             headers: {
                 'Accept': 'application/json',
             },
-            signal: abortController.signal // 添加 abort signal
+            signal: abortController.signal
         });
 
         if (!response.ok) {
@@ -190,7 +186,9 @@ function isValidTikTokUrl(url) {
         /tiktok\.com\/t\/[\w-]+/
     ];
 
-    return patterns.some(pattern => pattern.test(url));
+    return patterns.some(function(pattern) {
+        return pattern.test(url);
+    });
 }
 
 function displayResult(data) {
@@ -221,8 +219,7 @@ function displayResult(data) {
 
     elements.result.classList.add('active');
 
-    // 触发动画
-    setTimeout(() => {
+    setTimeout(function() {
         document.body?.classList.add('content-loaded');
     }, 100);
 }
@@ -230,7 +227,7 @@ function displayResult(data) {
 function displayPhotoGallery(images) {
     elements.photoGrid.innerHTML = '';
 
-    images.forEach((imageUrl, index) => {
+    images.forEach(function(imageUrl, index) {
         const photoItem = document.createElement('div');
         photoItem.className = 'photo-item';
 
@@ -239,14 +236,12 @@ function displayPhotoGallery(images) {
         img.alt = `Photo ${index + 1}`;
         img.loading = 'lazy';
 
-        // 图片加载成功
-        img.onload = () => {
+        img.onload = function() {
             img.classList.add('loaded');
             photoItem.classList.add('loaded');
         };
 
-        // 图片加载失败
-        img.onerror = () => {
+        img.onerror = function() {
             photoItem.classList.add('error');
             console.error(`Failed to load image ${index + 1}`);
         };
@@ -254,7 +249,7 @@ function displayPhotoGallery(images) {
         photoItem.appendChild(img);
         elements.photoGrid.appendChild(photoItem);
 
-        photoItem.addEventListener('click', (e) => {
+        photoItem.addEventListener('click', function() {
             if (!photoItem.classList.contains('error')) {
                 openPhotoPreview(imageUrl);
             }
@@ -278,7 +273,6 @@ function openPhotoPreview(imageUrl) {
     elements.previewModal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
-    // 聚焦到模态框，支持键盘导航
     elements.previewModal.focus();
 }
 
@@ -320,7 +314,7 @@ async function downloadMedia(url, filename) {
         document.body.appendChild(a);
         a.click();
 
-        setTimeout(() => {
+        setTimeout(function() {
             document.body.removeChild(a);
             URL.revokeObjectURL(blobUrl);
         }, 100);
@@ -328,7 +322,6 @@ async function downloadMedia(url, filename) {
         showToast('Download started!');
     } catch (error) {
         console.error('Download error:', error);
-        // Fallback: 如果 Fetch 失败（通常是跨域问题），则直接打开链接
         if (isIOS) {
             showToast('iOS: Please long press to save', true);
             window.open(url, '_blank');
@@ -352,7 +345,7 @@ async function copyToClipboard(text, button) {
 
         showToast('Link copied to clipboard!');
 
-        setTimeout(() => {
+        setTimeout(function() {
             button.querySelector('.action-label').textContent = originalText;
             button.classList.remove('copied');
         }, 2000);
@@ -373,7 +366,7 @@ function showToast(message, isError = false) {
     elements.toast.classList.toggle('error', isError);
     elements.toast.classList.add('active');
 
-    toastTimer = setTimeout(() => {
+    toastTimer = setTimeout(function() {
         elements.toast.classList.remove('active');
         toastTimer = null;
     }, 3000);
