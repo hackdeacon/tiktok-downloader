@@ -41,6 +41,15 @@ elements.modalClose?.addEventListener('click', closePreview);
 elements.previewModal?.addEventListener('click', handleModalClick);
 document.addEventListener('keydown', handleEscapeKey);
 
+// Theme Change Listener for Favicon
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) {
+        const [href] = favicon.getAttribute('href').split('?');
+        favicon.href = `${href}?t=${Date.now()}`;
+    }
+});
+
 function handleKeyPress(e) {
     if (e.key === 'Enter') {
         handleDownload();
